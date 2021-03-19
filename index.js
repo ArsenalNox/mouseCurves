@@ -1,0 +1,5 @@
+/** (>.>) */
+
+var mouseCursor = 'mouse cursor';
+
+
