@@ -3,4 +3,22 @@
     padding: 0;
     box-sizing: border-box;
 }
+
+.section { 
+    border: 1px solid black;
+    max-width: max-content;
+    margin: 3rem;
+}
         
+.content canvas{
+    border-top: black 1px solid;
+}
+
+.curve-description {
+    text-align: center;
+}
+
+.wrapper {
+    justify-content: center;
+    display: grid;
+}
