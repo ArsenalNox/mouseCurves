@@ -6,7 +6,7 @@ var maxPoints = 50; //Максимальное количество точек �
 var debug = true
 var timeOutTimer //Таймер, ограничивающий создание новых точек
 var newPointAdditionAllowed = true;
-var offsetLines = 20; //Кол-во линий в <>
+var offsetLines = 40; //Кол-во линий в <>
 var offValueMax = 30; //Максимальное значение сдвига
 var smoothOffValue = 0.5; //Сдвиг для 
 var smoothLines = 5; //Кол-во линий 
@@ -56,20 +56,29 @@ function createNewCanvas(curveType, canvas) {
 /** Расчитывает позицию мыши внутри данного канваса */
 function calculateMousePosition(e) {
 	//Определяем, внутри какого канваса находимся
-    let skipAmount = 2;
-    let skipInteval = 2;
 	for (let i = 0; i < canvases.length; i++) {
 		if (canvases[i].isMouseInside) {
-            
-            if(canvas[i].type == 'c-smooth-lines-multiple'){
-                
-            }
 			let canvas = document.getElementById(canvases[i].id);
+
 			let rect = canvas.getBoundingClientRect();
 			let mousePos = {
 				x: e.clientX - rect.left,
 				y: e.clientY - rect.top
 			};
+            if(canvases[i].type == 'c-smooth-lines-multiple'){
+                if(canvases[i].points.length > 5){
+                    let lineLen = Math.sqrt(
+                        Math.pow(canvases[i].points[canvases[i].points.length-1].x - canvases[i].points[canvases[i].points.length-2].x, 2)
+                        +
+                        Math.pow(canvases[i].points[canvases[i].points.length-1].y - canvases[i].points[canvases[i].points.length-2].y, 2)
+                    )
+                    console.log(lineLen)
+                    if(lineLen < 50 ){
+                        canvases[i].points[canvases[i].points.length-1] = mousePos
+                        continue
+                    }   
+                }
+            }
 			canvases[i].points.push(mousePos)
 			if (canvases[i].points.length > maxPoints) {
 				canvases[i].points.shift()
@@ -79,280 +88,409 @@ function calculateMousePosition(e) {
 }
 
 /** Отрисовывает все эффекты*/
-function draw() {
-	for (let i = 0; i < canvases.length; i++) {
+function draw()
+{
+for (let i = 0; i < canvases.length; i++) {
 
-		let lastPoint = 0 //Последняя точка
-		let canvas = canvases[i] //Текущий канвас
-		let ctx = canvases[i].context;
-		ctx.clearRect(0, 0, canvas.width, canvas.height)
+    let lastPoint = 0 //Последняя точка
+    let canvas = canvases[i] //Текущий канвас
+    let ctx = canvases[i].context;
+    ctx.clearRect(0, 0, canvas.width, canvas.height)
 
-		switch (canvas.type) { //Выбор соответсвующей анимации
-				/** Отрисовывает кубическую кривую с одной контрольной точкой */
-			case 'c-lines-slightly-curved': // c_1
-				for (let j = 0; j < canvas.points.length; j++) {
-					let point = canvas.points[j]
-					if (lastPoint === 0) {
-						lastPoint = point + point * (randomNumber(0.9, 1.1));
-						continue;
-					}
-					ctx.beginPath();
-					ctx.moveTo(lastPoint.x, lastPoint.y);
-					if (point?.cpx && point?.cpy) {
-						ctx.quadraticCurveTo(lastPoint.x + point.cpx, lastPoint.y + point.cpy, point.x, point.y);
-					} else {
-						point.cpx = randomNumber(-20, 20);
-						point.cpy = randomNumber(-20, 20);
-						ctx.quadraticCurveTo(lastPoint.x + point.cpx, lastPoint.y + point.cpy, point.x, point.y);
-					}
-					ctx.stroke();
-					lastPoint = point;
-				}
-				break;
+    switch (canvas.type) { //Выбор соответсвующей анимации
+        case 'c-lines-slightly-curved': // c_1
 
-				/** Две контрольные точки */
-			case 'c-beizer-curve': //c_2
-                for (let j = 0; j < canvas.points.length; j++) {
-					let point = canvas.points[j]
-					if (lastPoint === 0) {
-						lastPoint = point + point * (randomNumber(0.9, 1.1));
-						continue;
-					}
-					ctx.beginPath();
-					ctx.moveTo(lastPoint.x, lastPoint.y);
-					if (point?.cp1x && point?.cp1y && point?.cp2x && point?.cp2y) {
-						ctx.bezierCurveTo(lastPoint.x + point.cp1x, lastPoint.y + point.cp1y, point.x + point.cp2x, point.y + point.cp2y, point.x, point.y);
-					} else {
-						point.cp1x = randomNumber(-20, 20);
-						point.cp1y = randomNumber(-20, 20);
-						point.cp2x = randomNumber(-20, 20);
-						point.cp2y = randomNumber(-20, 20);
-						ctx.quadraticCurveTo(lastPoint.x + point.cp1x, lastPoint.y + point.cp1y, point.x + point.cp2x, point.y + point.cp2y, point.x, point.y);
-					}
-					ctx.stroke();
-					lastPoint = point;
-				}
-				break;
+        /** Отрисовывает кубическую кривую с одной контрольной точкой */
+        for (let j = 0; j < canvas.points.length; j++) {
+            let point = canvas.points[j]
+            if (lastPoint === 0) {
+                lastPoint = point + point * (randomNumber(0.9, 1.1));
+                continue;
+            }
+            ctx.beginPath();
+            ctx.moveTo(lastPoint.x, lastPoint.y);
+            if (point?.cpx && point?.cpy) {
+                ctx.quadraticCurveTo(lastPoint.x + point.cpx, lastPoint.y + point.cpy, point.x, point.y);
+            } else {
+                point.cpx = randomNumber(-20, 20);
+                point.cpy = randomNumber(-20, 20);
+                ctx.quadraticCurveTo(lastPoint.x + point.cpx, lastPoint.y + point.cpy, point.x, point.y);
+            }
+            ctx.stroke();
+            lastPoint = point;
+        }
+        break;
 
-			case 'c-straight-lines-multiple': //c_3
-                for (let j = 0; j < canvas.points.length; j++) {
-					let point = canvas.points[j];
-					if (lastPoint === 0) {
-						lastPoint = point + point * (randomNumber(0.9, 1.1));
-						continue;
-					}
-					if (!(point?.ofl)) { //Если отсутсвует свойство
-						point.ofl = [];
-						for (let j = 0; j < offsetLines; j++) {
-							point.ofl.push({
-								x: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7),
-								y: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7)
-							});
-						}
-					}
-					for (let j = 0; j < point.ofl.length; j++) {
-						ctx.beginPath();
-						ctx.moveTo(lastPoint.x + point.ofl[j].x, lastPoint.y + point.ofl[j].y);
-						ctx.lineTo(point.x + point.ofl[j].x, point.y + point.ofl[j].y);
-						ctx.stroke();
-					}
+        case 'c-beizer-curve': //c_2
+        /** Две контрольные точки */
+        for (let j = 0; j < canvas.points.length; j++) {
+            let point = canvas.points[j]
+            if (lastPoint === 0) {
+                lastPoint = point + point * (randomNumber(0.9, 1.1));
+                continue;
+            }
+            ctx.beginPath();
+            ctx.moveTo(lastPoint.x, lastPoint.y);
+            if (point?.cp1x && point?.cp1y && point?.cp2x && point?.cp2y) {
+                ctx.bezierCurveTo(lastPoint.x + point.cp1x, lastPoint.y + point.cp1y, point.x + point.cp2x, point.y + point.cp2y, point.x, point.y);
+            } else {
+                point.cp1x = randomNumber(-20, 20);
+                point.cp1y = randomNumber(-20, 20);
+                point.cp2x = randomNumber(-20, 20);
+                point.cp2y = randomNumber(-20, 20);
+                ctx.quadraticCurveTo(lastPoint.x + point.cp1x, lastPoint.y + point.cp1y, point.x + point.cp2x, point.y + point.cp2y, point.x, point.y);
+            }
+            ctx.stroke();
+            lastPoint = point;
+        }
+        break;
 
-					lastPoint = point;
-				}
-				break;
+        case 'c-straight-lines-multiple': //c_3
+        for (let j = 0; j < canvas.points.length; j++) {
+            let point = canvas.points[j];
+            if (lastPoint === 0) {
+                lastPoint = point + point * (randomNumber(0.9, 1.1));
+                continue;
+            }
+            if (!(point?.ofl)) { //Если отсутсвует свойство
+                point.ofl = [];
+                for (let j = 0; j < offsetLines; j++) {
+                    point.ofl.push({
+                        x: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7),
+                        y: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7)
+                    });
+                }
+            }
+            for (let j = 0; j < point.ofl.length; j++) {
+                ctx.beginPath();
+                ctx.moveTo(lastPoint.x + point.ofl[j].x, lastPoint.y + point.ofl[j].y);
+                ctx.lineTo(point.x + point.ofl[j].x, point.y + point.ofl[j].y);
+                ctx.stroke();
+            }
 
-			case 'c-straight-lines-multiple-shift-x': //c_4
-                for (let j = 0; j < canvas.points.length; j++) {
-					let point = canvas.points[j];
-					if (lastPoint === 0) {
-						lastPoint = point + point * (randomNumber(0.9, 1.1));
-						continue;
-					}
-					if (!(point?.ofl)) {
-						point.ofl = [];
-						for (let j = 0; j < offsetLines; j++) {
-							point.ofl.push({
-								x: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7),
-								y: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7)
-							});
-						}
-					}
-					for (let j = 0; j < point.ofl.length; j++) {
-						ctx.beginPath();
-						ctx.moveTo(lastPoint.x + point.ofl[j].x, lastPoint.y + point.ofl[j].y);
-						ctx.lineTo(point.x + point.ofl[j].x, point.y + point.ofl[j].y);
-						ctx.stroke();
-						point.ofl[j].x = point.ofl[j].x * 1.05;
-					}
-					lastPoint = point;
-				}
-				break;
+            lastPoint = point;
+        }
+        break;
 
-			case 'c-straight-lines-multiple-shift-y': //c_5
-                for (let j = 0; j < canvas.points.length; j++) {
-					let point = canvas.points[j];
-					if (lastPoint === 0) {
-						lastPoint = point + point * (randomNumber(0.9, 1.1));
-						continue;
-					}
-					if (!(point?.ofl)) {
-						point.ofl = [];
-						for (let j = 0; j < offsetLines; j++) {
-							point.ofl.push({
-								x: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7),
-								y: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7)
-							});
-						}
-					}
-					for (let j = 0; j < point.ofl.length; j++) {
-						ctx.beginPath();
-						ctx.moveTo(lastPoint.x + point.ofl[j].x, lastPoint.y + point.ofl[j].y);
-						ctx.lineTo(point.x + point.ofl[j].x, point.y + point.ofl[j].y);
-						ctx.stroke();
-						point.ofl[j].y = point.ofl[j].y * 1.1;
-					}
-					lastPoint = point;
-				}
-				break;
+        case 'c-straight-lines-multiple-shift-x': //c_4
+        for (let j = 0; j < canvas.points.length; j++) {
+            let point = canvas.points[j];
+            if (lastPoint === 0) {
+                lastPoint = point + point * (randomNumber(0.9, 1.1));
+                continue;
+            }
+            if (!(point?.ofl)) {
+                point.ofl = [];
+                for (let j = 0; j < offsetLines; j++) {
+                    point.ofl.push({
+                        x: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7),
+                        y: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7)
+                    });
+                }
+            }
+            for (let j = 0; j < point.ofl.length; j++) {
+                ctx.beginPath();
+                ctx.moveTo(lastPoint.x + point.ofl[j].x, lastPoint.y + point.ofl[j].y);
+                ctx.lineTo(point.x + point.ofl[j].x, point.y + point.ofl[j].y);
+                ctx.stroke();
+                point.ofl[j].x = point.ofl[j].x * 1.05;
+            }
+            lastPoint = point;
+        }
+        break;
 
-			case 'c-straight-lines-multiple-shift-x-y': //c_6
-                for (let j = 0; j < canvas.points.length; j++) {
-					let point = canvas.points[j];
-					if (lastPoint === 0) {
-						lastPoint = point + point * (randomNumber(0.9, 1.1));
-						continue;
-					}
-					if (!(point?.ofl)) {
-						point.ofl = [];
-						for (let j = 0; j < offsetLines; j++) {
-							point.ofl.push({
-								x: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7),
-								y: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7)
-							});
-						}
-					}
-					for (let j = 0; j < point.ofl.length; j++) {
-						ctx.beginPath();
-						ctx.moveTo(lastPoint.x + point.ofl[j].x, lastPoint.y + point.ofl[j].y);
-                        ctx.fillRect(point.x + point.ofl[j].x, point.y + point.ofl[j].y, 1 ,1)
-						ctx.stroke();
-						point.ofl[j].x = point.ofl[j].x * 1.05;
-						point.ofl[j].y = point.ofl[j].y * 1.05;
-					}
-					lastPoint = point;
-				}
-				break;
-				
-				case 'c-straight-lines-inverse-snake': //c_7
-                for (let j = 0; j < canvas.points.length; j++) {
-					let point = canvas.points[j];
-					if (lastPoint === 0) {
-						lastPoint = point + point * (randomNumber(0.9, 1.1));
-						continue;
-					}
-					if (!(point?.ofl)) {
-						point.ofl = [];
-						for (let j = 0; j < offsetLines; j++) {
-							point.ofl.push({
-								x: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7),
-								y: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7)
-							}); } } for (let j = 0; j < point.ofl.length; j++) {
-						ctx.beginPath();
-						ctx.moveTo(lastPoint.x + point.ofl[j].x, lastPoint.y + point.ofl[j].y);
-						ctx.lineTo(point.x + point.ofl[j].x, point.y + point.ofl[j].y);
-						ctx.stroke();
-						point.ofl[j].x = point.ofl[j].x * 0.95;
-						point.ofl[j].y = point.ofl[j].y * 0.95;
-					}
-					lastPoint = point;
-				}
-				break;
-                
-                case 'c-smooth-lines-multiple': //c_8
-                for (let j = 0; j < canvas.points.length; j++) {
-                    let point = canvas.points[j];
-					if (lastPoint === 0) {
-						lastPoint = point;
-						continue;
-					}
+        case 'c-straight-lines-multiple-shift-y': //c_5
+        for (let j = 0; j < canvas.points.length; j++) {
+            let point = canvas.points[j];
+            if (lastPoint === 0) {
+                lastPoint = point + point * (randomNumber(0.9, 1.1));
+                continue;
+            }
+            if (!(point?.ofl)) {
+                point.ofl = [];
+                for (let j = 0; j < offsetLines; j++) {
+                    point.ofl.push({
+                        x: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7),
+                        y: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7)
+                    });
+                }
+            }
+            for (let j = 0; j < point.ofl.length; j++) {
+                ctx.beginPath();
+                ctx.moveTo(lastPoint.x + point.ofl[j].x, lastPoint.y + point.ofl[j].y);
+                ctx.lineTo(point.x + point.ofl[j].x, point.y + point.ofl[j].y);
+                ctx.stroke();
+                point.ofl[j].y = point.ofl[j].y * 1.1;
+            }
+            lastPoint = point;
+        }
+        break;
 
-                    if(Math.sqrt( Math.pow(point.x - lastPoint.x,2) + Math.pow(point.y - lastPoint.y, 2)) < 20){
-                        if(!(point?.cpl)){
-                            point.cpl = [];
-                            let commonCp = {
-							    	x: randomNumber(-1, 1),
-							    	y: randomNumber(-1, 1)
-							    }
-                            for (let j = 0; j < smoothLines; j++) {  
-                                point.cpl.push({ 
-                                    x: commonCp.x,
-                                    y: commonCp.y
-                                });
-						    }
+        case 'c-straight-lines-multiple-shift-x-y': //c_6
+        for (let j = 0; j < canvas.points.length; j++) {
+            let point = canvas.points[j];
+            if (lastPoint === 0) {
+                lastPoint = point + point * (randomNumber(0.9, 1.1));
+                continue;
+            }
+            if (!(point?.ofl)) {
+                point.ofl = [];
+                for (let j = 0; j < offsetLines; j++) {
+                    point.ofl.push({
+                        x: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7),
+                        y: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7)
+                    });
+                }
+            }
+            for (let j = 0; j < point.ofl.length; j++) {
+                ctx.beginPath();
+                ctx.moveTo(lastPoint.x + point.ofl[j].x, lastPoint.y + point.ofl[j].y);
+                ctx.fillRect(point.x + point.ofl[j].x, point.y + point.ofl[j].y, 1 ,1)
+                ctx.stroke();
+                point.ofl[j].x = point.ofl[j].x * 1.05;
+                point.ofl[j].y = point.ofl[j].y * 1.05;
+            }
+            lastPoint = point;
+        }
+        break;
+        
+        case 'c-straight-lines-inverse-snake': //c_7
+        for (let j = 0; j < canvas.points.length; j++) {
+            let point = canvas.points[j];
+            if (lastPoint === 0) {
+                lastPoint = point + point * (randomNumber(0.9, 1.1));
+                continue;
+            }
+            if (!(point?.ofl)) {
+                point.ofl = [];
+                for (let j = 0; j < offsetLines; j++) {
+                    point.ofl.push({
+                        x: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7),
+                        y: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7)
+                    }); } } for (let j = 0; j < point.ofl.length; j++) {
+                ctx.beginPath();
+                ctx.moveTo(lastPoint.x + point.ofl[j].x, lastPoint.y + point.ofl[j].y);
+                ctx.lineTo(point.x + point.ofl[j].x, point.y + point.ofl[j].y);
+                ctx.stroke();
+                point.ofl[j].x = point.ofl[j].x * 0.95;
+                point.ofl[j].y = point.ofl[j].y * 0.95;
+            }
+            lastPoint = point;
+        }
+        break;
+        
+        case 'c-smooth-lines-multiple': //c_8
+        for (let j = 0; j < canvas.points.length; j++) {
+
+            //Assigning last point 
+            let point = canvas.points[j];
+            if (lastPoint === 0) {
+                lastPoint = point;
+                continue;
+            }
+
+            //Initialising array of control points for line 
+            //Check if line lenght is insufficent 
+            if(Math.sqrt( Math.pow(point.x - lastPoint.x,2) + Math.pow(point.y - lastPoint.y, 2)) < 20){
+                if(!(point?.cpl)){ //Create point.cpl if there is none (common control points)
+                    point.cpl = [];
+                    let commonCp = {
+                            x: randomNumber(-1, 1),
+                            y: randomNumber(-1, 1)
                         }
-                    }else{
-                        if (!(point?.cpl)) {
-						    point.cpl = [];
-                            let commonCp = {
-							    	x: randomNumber(-smoothOffValue, smoothOffValue),
-							    	y: randomNumber(-smoothOffValue, smoothOffValue)
-							    }
-                            for (let j = -1; j < smoothLines; j++) {  
-                                point.cpl.push({ 
-                                    x: commonCp.x+(Math.sign(commonCp.x)*j*9),
-                                    y: commonCp.y+(Math.sign(commonCp.y)*j*9)
-                                });
-						    }
-					    }
+                    for (let j = 0; j < smoothLines; j++) {  
+                        point.cpl.push({ 
+                            x: commonCp.x,
+                            y: commonCp.y
+                        });
                     }
-					
-					for (let j = 0; j < point.cpl.length; j++) {
-						ctx.beginPath();
-						ctx.moveTo(lastPoint.x, lastPoint.y);
-                        ctx.quadraticCurveTo(lastPoint.x + point.cpl[j].x, lastPoint.y + point.cpl[j].y, point.x, point.y)
-						ctx.stroke();
-
-						point.cpl[j].x = point.cpl[j].x * 0.99;
-						point.cpl[j].y = point.cpl[j].y * 0.99;
-					}
-					lastPoint = point;
-				}
-                break;
-
-                case 'c-squares': //c_9
-                for (let j = 0; j < canvas.points.length; j++) {
-					let point = canvas.points[j];
-					if (lastPoint === 0) {
-						lastPoint = point + point * (randomNumber(0.9, 1.1));
-						continue;
-					}
-					if (!(point?.ofl)) {
-						point.ofl = [];
-						for (let j = 0; j < offsetLines; j++) {
-							point.ofl.push({
-								x: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7),
-								y: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7)
-							});
-						}
-					}
-					for (let j = 0; j < point.ofl.length; j++) {
-						ctx.beginPath();
-                        ctx.fillStyle='rgba(200,0,0, 0.2)'
-                        if(Math.abs(point.ofl[j].x) < 3 || Math.abs(point.ofl[j].y) < 3){
-                            continue;
+                }
+            }else{ //If lenght is OK
+                if (!(point?.cpl)) {
+                    point.cpl = [];
+                    let commonCp = { //Create normal control poins
+                            x: randomNumber(-smoothOffValue, smoothOffValue),
+                            y: randomNumber(-smoothOffValue, smoothOffValue)
                         }
-                        let len = Math.sqrt( Math.pow(point.ofl[j].x,2) + Math.pow(point.ofl[j].y,2) )
-						ctx.fillRect(point.x + point.ofl[j].x, point.y + point.ofl[j].y, 1*len, 1*len);
-						ctx.stroke();
-						point.ofl[j].x = point.ofl[j].x * 0.95;
-						point.ofl[j].y = point.ofl[j].y * 0.95;
-					}
-					lastPoint = point;
-				}
-                break;
-		}
-	}
-	window.requestAnimationFrame(draw)
+                    for (let j = -1; j < smoothLines; j++) {  
+                        point.cpl.push({ 
+                            x: commonCp.x+(Math.sign(commonCp.x)*j*9),
+                            y: commonCp.y+(Math.sign(commonCp.y)*j*9)
+                        });
+                    }
+                }
+            }
+            
+            for (let j = 0; j < point.cpl.length; j++) { //Drawing the line 
+                ctx.beginPath();
+                ctx.moveTo(lastPoint.x, lastPoint.y);
+                ctx.quadraticCurveTo(lastPoint.x + point.cpl[j].x, lastPoint.y + point.cpl[j].y, point.x, point.y)
+                ctx.stroke();
+
+            }
+            
+            lastPoint = point;
+        }
+        break;
+
+        case 'c-squares': //c_9
+        for (let j = 0; j < canvas.points.length; j++) {
+            
+            let point = canvas.points[j];
+            if (lastPoint === 0) {
+                lastPoint = point + point * (randomNumber(0.9, 1.1));
+                continue;
+            }
+            
+            if (!(point?.ofl)) { 
+                point.ofl = [];
+                for (let j = 0; j < offsetLines; j++) {
+                    point.ofl.push({
+                        x: randomNumber(-offValueMax, offValueMax) * randomNumber(1.1, 1.7),
+                        y: randomNumber(-offValueMax, offValueMax) * randomNumber(1.1, 1.7)
+                    });
+                }
+            }
+
+            for (let j = 0; j < point.ofl.length; j++) {
+                
+                let len = Math.sqrt( Math.pow(point.ofl[j].x,2) + Math.pow(point.ofl[j].y,2) )
+
+                if(!point?.color){
+                    point.color = {
+                        maxValue: len,
+                        currentValue:  len
+                    }
+                    
+                }else{
+                    point.color.currentValue = len;
+                }
+
+                ctx.beginPath();
+                colorValue = Math.round(point.color.currentValue/point.color.maxValue*256)
+                ctx.fillStyle='rgba('+colorValue+',0,'+colorValue+', 0.09)'
+                if(Math.abs(point.ofl[j].x) < 3 || Math.abs(point.ofl[j].y) < 3){
+                    continue;
+                }
+                
+                ctx.fillRect(point.x + point.ofl[j].x*1.3, point.y + point.ofl[j].y*1.3, 1*len, 1*len);
+                ctx.stroke();
+                
+                point.ofl[j].x = point.ofl[j].x * 0.97;
+                point.ofl[j].y = point.ofl[j].y * 0.97;
+
+            }
+            lastPoint = point;
+        }
+        break;
+
+        case 'c-squares-moving':
+         for (let j = 0; j < canvas.points.length; j++) {
+            
+            let point = canvas.points[j];
+            if (lastPoint === 0) {
+                lastPoint = point + point * (randomNumber(0.9, 1.1));
+                continue;
+            }
+            
+            if (!(point?.ofl)) { 
+                point.ofl = [];
+                for (let j = 0; j < offsetLines; j++) {
+                    let randomPoint = randomPoinInCircle(offValueMax);
+                    point.ofl.push({
+                        x: randomPoint.x * randomNumber(1.1, 1.7),
+                        y: randomPoint.y * randomNumber(1.1, 1.7)
+                    });
+                }
+            }
+
+            for (let j = 0; j < point.ofl.length; j++) {
+                
+                let len = Math.sqrt( Math.pow(point.ofl[j].x,2) + Math.pow(point.ofl[j].y,2) )
+
+                if(!point?.color){
+                    point.color = {
+                        maxValue: len,
+                        currentValue:  len
+                    }
+                    
+                }else{
+                    point.color.currentValue = len;
+                }
+
+                ctx.beginPath();
+                colorValue = Math.round(point.color.currentValue/point.color.maxValue*256)
+                ctx.fillStyle='rgba('+Math.round(colorValue/2)+',0,'+colorValue+', 0.09)'
+                if(Math.abs(point.ofl[j].x) < 3 || Math.abs(point.ofl[j].y) < 3){
+                    continue;
+                }
+                
+                ctx.fillRect(point.x + point.ofl[j].x*1.3, point.y + point.ofl[j].y*1.3, 1*len, 1*len);
+                ctx.stroke();
+                
+                point.ofl[j].x = point.ofl[j].x * 0.97;
+                point.ofl[j].y = point.ofl[j].y * 0.97;
+
+                point.x = point.x*1.0002;
+                point.y = point.y*0.999;
+            }
+            lastPoint = point;
+        }
+        break;
+
+        case 'blob':
+        for (let j = 0; j < canvas.points.length; j++) {
+            
+            let point = canvas.points[j];
+            if (lastPoint === 0) {
+                lastPoint = point + point * (randomNumber(0.9, 1.1));
+                continue;
+            }
+            
+            if (!(point?.ofl)) { 
+                point.ofl = [];
+                for (let j = 0; j < offsetLines; j++) {
+                    let randomPoint = randomPoinInCircle(offValueMax);
+                    point.ofl.push({
+                        x: randomPoint.x * randomNumber(1.1, 1.7),
+                        y: randomPoint.y * randomNumber(1.1, 1.7)
+                    });
+                }
+            }
+
+            for (let j = 0; j < point.ofl.length; j++) {
+                
+                let len = Math.sqrt( Math.pow(point.ofl[j].x,2) + Math.pow(point.ofl[j].y,2) )
+
+                ctx.beginPath();
+                colorValue = Math.round(point.color.currentValue/point.color.maxValue*256);
+                ctx.fillStyle='rgba(0, 245, 200, 0.09)';
+
+                ctx.fillRect(point.x + point.ofl[j].x*1.3, point.y + point.ofl[j].y*1.3, 1*len, 1*len);
+                ctx.stroke();
+                
+                point.ofl[j].x = point.ofl[j].x * 0.97;
+                point.ofl[j].y = point.ofl[j].y * 0.97;
+
+            }
+            lastPoint = point;
+        }
+        break;
+    }
+}
+window.requestAnimationFrame(draw)
+}
+
+/** 
+ *  Returns random x, y inside a circle with radius r
+ * */
+function randomPoinInCircle(R){
+    let a = Math.random() * 2 * Math.PI;
+    let r = R * Math.sqrt(Math.random());
+    return {
+        x: r*Math.cos(a),
+        y: r*Math.sin(a)
+    }
 }
 
 // Конец определения функций
@@ -363,7 +501,6 @@ for (let i = 0; i < canvasClassSelector.length; i++) {
 	createNewCanvas(canvasClassSelector[i].id, canvasClassSelector[i].id)
 }
 
-//Таймаут после каждого движения мышкой для определения след. точки
-
 document.addEventListener('mousemove', calculateMousePosition);
+
 window.requestAnimationFrame(draw);
