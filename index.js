@@ -21,10 +21,10 @@ var blob_maxPoints = 1;
 var blob_sections = 4; //Number of sections inside blob point
 
 //Blob tree 12
-var blob_tree_offsetLines = 90;
-var blob_tree_offValueMax = 5;
+var blob_tree_offsetLines = 100;
+var blob_tree_offValueMax = 10;
 var blob_tree_maxPoints = 1;
-var blob_tree_sections = 5; //Number of sections inside blob point
+var blob_tree_sections = 10; //Number of sections inside blob point
 
 
 /** Класс содержателя информации под канвас */
@@ -103,9 +103,14 @@ function calculateMousePosition(e) {
             }
  
             if(canvases[i].type == 'c-blob-tree'){
-                if(canvases[i].points.length > blob_tree_maxPoints){
-    				canvases[i].points.shift()
+                if(!(canvases[i].points[0]?.x && canvases[i].points[0]?.y)){
+    				canvases[i].points.push(mousePos)
+                } else { 
+                    canvases[i].points[0].x = mousePos.x;
+                    canvases[i].points[0].y = mousePos.y;
                 }
+
+                continue;
             }
                
 			canvases[i].points.push(mousePos)
@@ -530,23 +535,18 @@ for (let i = 0; i < canvases.length; i++) {
 
         case 'c-blob-tree': //c_12
         for (let j = 0; j < canvas.points.length; j++) {
-            
-            let point = canvas.points[j];
-            if (lastPoint === 0) {
-                lastPoint = point + point * (randomNumber(0.9, 1.1));
-                continue;
-            }
-            
-            if (!(point?.ofl)) {  
+
+            var point = canvas.points[j];
+            if (!(point?.ofl)) {  //Генерация точек
                 point.ofl = [];
                 for(let sc = 0; sc < blob_tree_sections; sc++){ //Populating points in section
+
                     //Section consists of outer and inner arrays of points 
                     //Generating inner points 
                     let innerPoints = [];
                     for(let oflp = 0; oflp < blob_tree_offsetLines; oflp++){ 
-
                         let rcoordinates = randomPointAtCircle(
-                            blob_tree_offValueMax*sc*8
+                            blob_tree_offValueMax*sc+blob_tree_offValueMax
                         );
 
                         innerPoints.push({
@@ -561,10 +561,10 @@ for (let i = 0; i < canvases.length; i++) {
                     let outerPoints = [];
                     for(let oflp = 0; oflp < blob_tree_offsetLines; oflp++){
                         outerPoints.push({
-                            x: innerPoints[oflp].x*1.3,
-                            y: innerPoints[oflp].y*1.3,
+                            x: 0,
+                            y: 0,
                             angle: innerPoints[oflp].angle,
-                            rad: innerPoints[oflp].rad*1.3
+                            rad: innerPoints[oflp].rad+blob_tree_offValueMax-2
                         });
                     }
                     
@@ -577,12 +577,17 @@ for (let i = 0; i < canvases.length; i++) {
                     point.ofl.push(section);
                 }
             }
+
             for (let j = 0; j < point.ofl.length; j++) {
+
+                if(!point.ofl[j]?.value){
+                    point.ofl[j].value = (Math.round(randomNumber(-1, 1)) > 0) ? -1 * randomNumber(.0001, .002): 1 * randomNumber(.0001, .002);
+                }
+
                 for(let sc = 0; sc < point.ofl[j].innerPoints.length; sc++){    
                     
-                    if(!point.ofl[j].innerPoints[sc]?.direction) point.ofl[j].innerPoints[sc].direction
-                    point.ofl[j].innerPoints[sc].angle= point.ofl[j].innerPoints[sc].angle + 0.001
-                    point.ofl[j].outerPoints[sc].angle= point.ofl[j].innerPoints[sc].angle + 0.001
+                    point.ofl[j].innerPoints[sc].angle= point.ofl[j].innerPoints[sc].angle + point.ofl[j].value
+                    point.ofl[j].outerPoints[sc].angle= point.ofl[j].innerPoints[sc].angle + point.ofl[j].value
                     
                     point.ofl[j].innerPoints[sc].x = point.ofl[j].innerPoints[sc].rad * Math.cos(point.ofl[j].innerPoints[sc].angle);
                     point.ofl[j].innerPoints[sc].y = point.ofl[j].innerPoints[sc].rad * Math.sin(point.ofl[j].innerPoints[sc].angle);
@@ -602,12 +607,8 @@ for (let i = 0; i < canvases.length; i++) {
                     )
 
                     ctx.stroke()
-                    
-
-
                 }
             }
-            lastPoint = point;
         }
         break;
             
