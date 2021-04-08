@@ -6,10 +6,25 @@ var maxPoints = 50; //Максимальное количество точек �
 var debug = true
 var timeOutTimer //Таймер, ограничивающий создание новых точек
 var newPointAdditionAllowed = true;
-var offsetLines = 40; //Кол-во линий в <>
+var offsetLines = 25 //Кол-во линий в <>
 var offValueMax = 30; //Максимальное значение сдвига
 var smoothOffValue = 0.5; //Сдвиг для 
 var smoothLines = 5; //Кол-во линий 
+
+
+
+
+//Blob 11
+var blob_offsetLines = 300;
+var blob_offValueMax = 30;
+var blob_maxPoints = 1;
+var blob_sections = 4; //Number of sections inside blob point
+
+//Blob tree 12
+var blob_tree_offsetLines = 90;
+var blob_tree_offValueMax = 5;
+var blob_tree_maxPoints = 1;
+var blob_tree_sections = 5; //Number of sections inside blob point
 
 
 /** Класс содержателя информации под канвас */
@@ -65,6 +80,7 @@ function calculateMousePosition(e) {
 				x: e.clientX - rect.left,
 				y: e.clientY - rect.top
 			};
+
             if(canvases[i].type == 'c-smooth-lines-multiple'){
                 if(canvases[i].points.length > 5){
                     let lineLen = Math.sqrt(
@@ -79,6 +95,19 @@ function calculateMousePosition(e) {
                     }   
                 }
             }
+
+            if(canvases[i].type == 'c-blob'){
+                if(canvases[i].points.length > blob_maxPoints){
+    				canvases[i].points.shift()
+                }
+            }
+ 
+            if(canvases[i].type == 'c-blob-tree'){
+                if(canvases[i].points.length > blob_tree_maxPoints){
+    				canvases[i].points.shift()
+                }
+            }
+               
 			canvases[i].points.push(mousePos)
 			if (canvases[i].points.length > maxPoints) {
 				canvases[i].points.shift()
@@ -256,24 +285,34 @@ for (let i = 0; i < canvases.length; i++) {
         
         case 'c-straight-lines-inverse-snake': //c_7
         for (let j = 0; j < canvas.points.length; j++) {
+
             let point = canvas.points[j];
             if (lastPoint === 0) {
                 lastPoint = point + point * (randomNumber(0.9, 1.1));
                 continue;
             }
+
             if (!(point?.ofl)) {
                 point.ofl = [];
                 for (let j = 0; j < offsetLines; j++) {
                     point.ofl.push({
                         x: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7),
                         y: randomNumber(-offValueMax, offValueMax) * randomNumber(0.3, 1.7)
-                    }); } } for (let j = 0; j < point.ofl.length; j++) {
+                    }); 
+                } 
+            } 
+
+            for (let j = 0; j < point.ofl.length; j++) {
+                
+                if(point.ofl[j].x < 1 && point.ofl[j].y < 1) continue;
+
                 ctx.beginPath();
                 ctx.moveTo(lastPoint.x + point.ofl[j].x, lastPoint.y + point.ofl[j].y);
                 ctx.lineTo(point.x + point.ofl[j].x, point.y + point.ofl[j].y);
                 ctx.stroke();
-                point.ofl[j].x = point.ofl[j].x * 0.95;
-                point.ofl[j].y = point.ofl[j].y * 0.95;
+
+                point.ofl[j].x = point.ofl[j].x * 0.96;
+                point.ofl[j].y = point.ofl[j].y * 0.96;
             }
             lastPoint = point;
         }
@@ -384,8 +423,8 @@ for (let i = 0; i < canvases.length; i++) {
         }
         break;
 
-        case 'c-squares-moving':
-         for (let j = 0; j < canvas.points.length; j++) {
+        case 'c-squares-moving': //c_10
+        for (let j = 0; j < canvas.points.length; j++) {
             
             let point = canvas.points[j];
             if (lastPoint === 0) {
@@ -398,8 +437,8 @@ for (let i = 0; i < canvases.length; i++) {
                 for (let j = 0; j < offsetLines; j++) {
                     let randomPoint = randomPoinInCircle(offValueMax);
                     point.ofl.push({
-                        x: randomPoint.x * randomNumber(1.1, 1.7),
-                        y: randomPoint.y * randomNumber(1.1, 1.7)
+                        x: randomPoint.x * randomNumber(0.4, 2.7),
+                        y: randomPoint.y * randomNumber(0.4, 2.7)
                     });
                 }
             }
@@ -425,20 +464,18 @@ for (let i = 0; i < canvases.length; i++) {
                     continue;
                 }
                 
-                ctx.fillRect(point.x + point.ofl[j].x*1.3, point.y + point.ofl[j].y*1.3, 1*len, 1*len);
+                ctx.fillRect(point.x + point.ofl[j].x*1.3, point.y + point.ofl[j].y*1.3, 1*len/2, 1*len/2);
                 ctx.stroke();
                 
-                point.ofl[j].x = point.ofl[j].x * 0.97;
-                point.ofl[j].y = point.ofl[j].y * 0.97;
+                point.ofl[j].x = point.ofl[j].x * 0.98;
+                point.ofl[j].y = point.ofl[j].y * 0.98;
 
-                point.x = point.x*1.0002;
-                point.y = point.y*0.999;
             }
             lastPoint = point;
         }
         break;
 
-        case 'blob':
+        case 'c-blob': //c_11
         for (let j = 0; j < canvas.points.length; j++) {
             
             let point = canvas.points[j];
@@ -447,35 +484,133 @@ for (let i = 0; i < canvases.length; i++) {
                 continue;
             }
             
-            if (!(point?.ofl)) { 
-                point.ofl = [];
-                for (let j = 0; j < offsetLines; j++) {
-                    let randomPoint = randomPoinInCircle(offValueMax);
-                    point.ofl.push({
-                        x: randomPoint.x * randomNumber(1.1, 1.7),
-                        y: randomPoint.y * randomNumber(1.1, 1.7)
+            if (!(point?.ofli)) { 
+                
+                point.ofli = [];
+                point.oflo = [];
+
+                for (let j = 0; j < blob_offsetLines; j++) {
+                    let randomPoint = randomPoinInCircle(offValueMax, 20);
+                    point.ofli.push({
+                        x: randomPoint.x,
+                        y: randomPoint.y
+                    });
+                }
+
+                for (let j = 0; j < blob_offsetLines; j++) {
+                    point.oflo.push({
+                        x: point.ofli[j].x*2 + randomNumber(-5, 5),
+                        y: point.ofli[j].y*2 + randomNumber(-5, 5)
                     });
                 }
             }
 
-            for (let j = 0; j < point.ofl.length; j++) {
+            for (let j = 0; j < point.ofli.length; j++) {
                 
-                let len = Math.sqrt( Math.pow(point.ofl[j].x,2) + Math.pow(point.ofl[j].y,2) )
-
                 ctx.beginPath();
-                colorValue = Math.round(point.color.currentValue/point.color.maxValue*256);
-                ctx.fillStyle='rgba(0, 245, 200, 0.09)';
-
-                ctx.fillRect(point.x + point.ofl[j].x*1.3, point.y + point.ofl[j].y*1.3, 1*len, 1*len);
+                
+                //ctx.fillRect(point.x + point.ofli[j].x, point.y + point.ofli[j].y, 2, 2);
+                //ctx.fillRect(point.x + point.oflo[j].x, point.y + point.oflo[j].y, 2, 2);
+                ctx.moveTo(point.x + point.ofli[j].x, point.y + point.ofli[j].y);
+                ctx.lineTo(point.x + point.oflo[j].x, point.y + point.oflo[j].y)
                 ctx.stroke();
                 
-                point.ofl[j].x = point.ofl[j].x * 0.97;
-                point.ofl[j].y = point.ofl[j].y * 0.97;
+                offsetX = randomNumber(-0.1, 0.1);
+                offsetY = randomNumber(-0.1, 0.1);
 
+                point.ofli[j].x = point.ofli[j].x + offsetX; 
+                point.ofli[j].y = point.ofli[j].y + offsetY;
+
+                point.oflo[j].x = point.oflo[j].x + offsetX;
+                point.oflo[j].y = point.oflo[j].y + offsetY;
             }
             lastPoint = point;
         }
         break;
+
+        case 'c-blob-tree': //c_12
+        for (let j = 0; j < canvas.points.length; j++) {
+            
+            let point = canvas.points[j];
+            if (lastPoint === 0) {
+                lastPoint = point + point * (randomNumber(0.9, 1.1));
+                continue;
+            }
+            
+            if (!(point?.ofl)) {  
+                point.ofl = [];
+                for(let sc = 0; sc < blob_tree_sections; sc++){ //Populating points in section
+                    //Section consists of outer and inner arrays of points 
+                    //Generating inner points 
+                    let innerPoints = [];
+                    for(let oflp = 0; oflp < blob_tree_offsetLines; oflp++){ 
+
+                        let rcoordinates = randomPointAtCircle(
+                            blob_tree_offValueMax*sc*8
+                        );
+
+                        innerPoints.push({
+                            x: rcoordinates.x,
+                            y: rcoordinates.y,
+                            angle: rcoordinates.angle,
+                            rad: rcoordinates.rad
+                        });
+                    }
+                    
+                    //Generating outer points 
+                    let outerPoints = [];
+                    for(let oflp = 0; oflp < blob_tree_offsetLines; oflp++){
+                        outerPoints.push({
+                            x: innerPoints[oflp].x*1.3,
+                            y: innerPoints[oflp].y*1.3,
+                            angle: innerPoints[oflp].angle,
+                            rad: innerPoints[oflp].rad*1.3
+                        });
+                    }
+                    
+                    let section = {
+                        'innerPoints': innerPoints,
+                        'outerPoints': outerPoints
+                    };
+
+                    //Appending section to ofl  
+                    point.ofl.push(section);
+                }
+            }
+            for (let j = 0; j < point.ofl.length; j++) {
+                for(let sc = 0; sc < point.ofl[j].innerPoints.length; sc++){    
+                    
+                    if(!point.ofl[j].innerPoints[sc]?.direction) point.ofl[j].innerPoints[sc].direction
+                    point.ofl[j].innerPoints[sc].angle= point.ofl[j].innerPoints[sc].angle + 0.001
+                    point.ofl[j].outerPoints[sc].angle= point.ofl[j].innerPoints[sc].angle + 0.001
+                    
+                    point.ofl[j].innerPoints[sc].x = point.ofl[j].innerPoints[sc].rad * Math.cos(point.ofl[j].innerPoints[sc].angle);
+                    point.ofl[j].innerPoints[sc].y = point.ofl[j].innerPoints[sc].rad * Math.sin(point.ofl[j].innerPoints[sc].angle);
+ 
+                    point.ofl[j].outerPoints[sc].x = point.ofl[j].outerPoints[sc].rad * Math.cos(point.ofl[j].outerPoints[sc].angle);
+                    point.ofl[j].outerPoints[sc].y = point.ofl[j].outerPoints[sc].rad * Math.sin(point.ofl[j].outerPoints[sc].angle);
+
+
+                    ctx.beginPath()
+                    ctx.moveTo(
+                        point.x + point.ofl[j].innerPoints[sc].x, 
+                        point.y + point.ofl[j].innerPoints[sc].y
+                    )
+                    ctx.lineTo(
+                        point.x + point.ofl[j].outerPoints[sc].x, 
+                        point.y + point.ofl[j].outerPoints[sc].y
+                    )
+
+                    ctx.stroke()
+                    
+
+
+                }
+            }
+            lastPoint = point;
+        }
+        break;
+            
     }
 }
 window.requestAnimationFrame(draw)
@@ -484,12 +619,22 @@ window.requestAnimationFrame(draw)
 /** 
  *  Returns random x, y inside a circle with radius r
  * */
-function randomPoinInCircle(R){
+function randomPoinInCircle(R, MIN=0){
     let a = Math.random() * 2 * Math.PI;
-    let r = R * Math.sqrt(Math.random());
+    let r = ( R * Math.sqrt(Math.random()) ) + MIN;
     return {
         x: r*Math.cos(a),
         y: r*Math.sin(a)
+    }
+}
+
+function randomPointAtCircle(R){
+    let a = Math.random() * 2 * Math.PI;
+    return {
+        x: R*Math.cos(a),
+        y: R*Math.sin(a),
+        angle: a,
+        rad: R
     }
 }
 
@@ -502,5 +647,8 @@ for (let i = 0; i < canvasClassSelector.length; i++) {
 }
 
 document.addEventListener('mousemove', calculateMousePosition);
+document.addEventListener('touchmove', (e)=>{
+    console.log(e.pageX);
+})
 
 window.requestAnimationFrame(draw);
