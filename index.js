@@ -21,11 +21,12 @@ var blob_maxPoints = 1;
 var blob_sections = 4; //Number of sections inside blob point
 
 //Blob tree 12
-var blob_tree_offsetLines = 100;
-var blob_tree_offValueMax = 10;
+var blob_tree_offsetLines = 200;
+var blob_tree_offValueMax = 20;
 var blob_tree_maxPoints = 1;
-var blob_tree_sections = 10; //Number of sections inside blob point
-
+var blob_tree_sections = 20; //Number of sections inside blob point
+var blob_tree_maxAngular = .001;
+var blob_tree_minAngular = .0001;
 
 /** Класс содержателя информации под канвас */
 class cdata {
@@ -564,7 +565,7 @@ for (let i = 0; i < canvases.length; i++) {
                             x: 0,
                             y: 0,
                             angle: innerPoints[oflp].angle,
-                            rad: innerPoints[oflp].rad+blob_tree_offValueMax-2
+                            rad: innerPoints[oflp].rad+blob_tree_offValueMax-1
                         });
                     }
                     
@@ -581,13 +582,20 @@ for (let i = 0; i < canvases.length; i++) {
             for (let j = 0; j < point.ofl.length; j++) {
 
                 if(!point.ofl[j]?.value){
-                    point.ofl[j].value = (Math.round(randomNumber(-1, 1)) > 0) ? -1 * randomNumber(.0001, .002): 1 * randomNumber(.0001, .002);
+                    point.ofl[j].value = (Math.round(randomNumber(-1, 1)) > 0) ? -1 * randomNumber(blob_tree_minAngular, blob_tree_maxAngular): 1 * randomNumber(blob_tree_minAngular, blob_tree_maxAngular);
+                    setTimeout(
+                        ()=>{
+                            setInterval(()=>{
+                            point.ofl[j].value = (Math.round(randomNumber(-1, 1)) > 0) ? -1 * randomNumber(blob_tree_minAngular, blob_tree_maxAngular): 1 * randomNumber(blob_tree_minAngular, blob_tree_maxAngular);
+                    },2000)
+                    },10*(randomNumber(1, 20)));
+                    
                 }
 
                 for(let sc = 0; sc < point.ofl[j].innerPoints.length; sc++){    
                     
-                    point.ofl[j].innerPoints[sc].angle= point.ofl[j].innerPoints[sc].angle + point.ofl[j].value
-                    point.ofl[j].outerPoints[sc].angle= point.ofl[j].innerPoints[sc].angle + point.ofl[j].value
+                    point.ofl[j].innerPoints[sc].angle = point.ofl[j].innerPoints[sc].angle + point.ofl[j].value
+                    point.ofl[j].outerPoints[sc].angle = point.ofl[j].innerPoints[sc].angle + point.ofl[j].value
                     
                     point.ofl[j].innerPoints[sc].x = point.ofl[j].innerPoints[sc].rad * Math.cos(point.ofl[j].innerPoints[sc].angle);
                     point.ofl[j].innerPoints[sc].y = point.ofl[j].innerPoints[sc].rad * Math.sin(point.ofl[j].innerPoints[sc].angle);
@@ -595,8 +603,9 @@ for (let i = 0; i < canvases.length; i++) {
                     point.ofl[j].outerPoints[sc].x = point.ofl[j].outerPoints[sc].rad * Math.cos(point.ofl[j].outerPoints[sc].angle);
                     point.ofl[j].outerPoints[sc].y = point.ofl[j].outerPoints[sc].rad * Math.sin(point.ofl[j].outerPoints[sc].angle);
 
-
-                    ctx.beginPath()
+                    ctx.beginPath();
+                    let colorValue =  Math.abs(point.ofl[j].value) / blob_tree_maxAngular * 256
+                    ctx.strokeStyle = 'rgba(0, 120, '+colorValue+', 0.8)';
                     ctx.moveTo(
                         point.x + point.ofl[j].innerPoints[sc].x, 
                         point.y + point.ofl[j].innerPoints[sc].y
